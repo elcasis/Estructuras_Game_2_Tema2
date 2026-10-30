@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Java Inspector — Clases, Atributos, Constructores y Métodos</title>
+  <style>
+    :root {
+      --bg-pure: #000000;
+      --bg-panel: #0a0a0f;
+      --border-dim: #2a2a3a;
+      --text-main: #ffffff;
+      --text-muted: #c2cad8;
+
+      /* Paleta Neón de Alto Contraste sobre Negro Puro */
+      --c-clase: #00e5ff;       /* Cian Neón */
+      --bg-clase: rgba(0, 229, 255, 0.20);
+
+      --c-atributo: #ffd600;    /* Amarillo Neón */
+      --bg-atributo: rgba(255, 214, 0, 0.20);
+
+      --c-constructor: #ff4081; /* Magenta Neón */
+      --bg-constructor: rgba(255, 64, 129, 0.22);
+
+      --c-metodo: #00e676;      /* Verde Neón */
+      --bg-metodo: rgba(0, 230, 118, 0.20);
+
+      --c-parametro: #ff9100;   /* Naranja Neón */
+      --bg-parametro: rgba(255, 145, 0, 0.22);
+
+      --c-error: #ff1744;
+      --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      --font-ui: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --code-size: 1.15rem;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100dvh;
+      background-color: var(--bg-pure);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Contenedor adaptado a proporción móvil 19.5:9 */
+    .app-shell {
+      width: 100%;
+      max-width: 500px;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-pure);
+      padding: env(safe-area-inset-top, 6px) 10px env(safe-area-inset-bottom, 8px) 10px;
+      gap: 8px;
+    }
+
+    /* BARRA SUPERIOR */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-panel);
+      border: 1.5px solid var(--border-dim);
+      border-radius: 14px;
+      padding: 8px 10px;
+      flex-shrink: 0;
+    }
+
+    .progress-info {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .case-counter {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #ffffff;
+      background: #1b1b29;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid #3c3c55;
+    }
+
+    .diff-badge {
+      font-size: 0.85rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 4px 9px;
+      border-radius: 8px;
+      letter-spacing: 0.4px;
+    }
+    .diff-Facil { color: #00e676; border: 1.5px solid #00e676; background: rgba(0, 230, 118, 0.14); }
+    .diff-Medio { color: #ffd600; border: 1.5px solid #ffd600; background: rgba(255, 214, 0, 0.14); }
+    .diff-Dificil { color: #ff9100; border: 1.5px solid #ff9100; background: rgba(255, 145, 0, 0.14); }
+    .diff-MuyDificil { color: #ff4081; border: 1.5px solid #ff4081; background: rgba(255, 64, 129, 0.16); }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .font-btn {
+      background: #191926;
+      color: #ffffff;
+      border: 1.5px solid #454566;
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 0.92rem;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .font-btn:active {
+      transform: scale(0.93);
+    }
+
+    .score-pill {
+      font-size: 0.98rem;
+      font-weight: 900;
+      color: #00e5ff;
+      padding: 2px 4px;
+    }
+
+    /* BANNER DE PISTA Y PROGRESO DEL EJERCICIO */
+    .challenge-banner {
+      background: var(--bg-panel);
+      border: 1.5px solid var(--border-dim);
+      border-radius: 12px;
+      padding: 8px 12px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .challenge-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .challenge-title {
+      font-size: 1.08rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .remaining-counter {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #ffd600;
+    }
+
+    .feedback-toast {
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      min-height: 1.4rem;
+      line-height: 1.3;
+    }
+    .feedback-toast.ok { color: #00e676; }
+    .feedback-toast.err { color: #ff5252; }
+    .feedback-toast.info { color: #00e5ff; }
+
+    /* VISOR DE CÓDIGO JAVA */
+    .code-viewport {
+      flex: 1;
+      background: #030306;
+      border: 2px solid #2e2e42;
+      border-radius: 16px;
+      overflow-y: auto;
+      overflow-x: auto;
+      padding: 12px 8px;
+    }
+
+    .code-lines {
+      font-family: var(--font-code);
+      font-size: var(--code-size);
+      line-height: 1.7;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .code-line {
+      display: flex;
+      align-items: flex-start;
+      padding: 2px 4px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .line-num {
+      color: #707894;
+      font-size: 0.82em;
+      min-width: 26px;
+      user-select: none;
+      padding-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .line-content {
+      flex: 1;
+    }
+
+    /* PIEZAS TOCABLES EN EL CÓDIGO */
+    .token-piece {
+      display: inline;
+      padding: 2px 7px;
+      margin: 1px 0;
+      border-radius: 8px;
+      border: 1.5px dashed #5c6280;
+      background: rgba(255, 255, 255, 0.06);
+      color: #ffffff;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      font-weight: 700;
+    }
+
+    .token-piece:hover, .token-piece:focus {
+      border-color: #ffffff;
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .token-piece.found-clase {
+      border: 2px solid var(--c-clase);
+      background: var(--bg-clase);
+      box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+    }
+    .token-piece.found-atributo {
+      border: 2px solid var(--c-atributo);
+      background: var(--bg-atributo);
+      box-shadow: 0 0 12px rgba(255, 214, 0, 0.4);
+    }
+    .token-piece.found-constructor {
+      border: 2px solid var(--c-constructor);
+      background: var(--bg-constructor);
+      box-shadow: 0 0 12px rgba(255, 64, 129, 0.4);
+    }
+    .token-piece.found-metodo {
+      border: 2px solid var(--c-metodo);
+      background: var(--bg-metodo);
+      box-shadow: 0 0 12px rgba(0, 230, 118, 0.4);
+    }
+    .token-piece.found-parametro {
+      border: 2px solid var(--c-parametro);
+      background: var(--bg-parametro);
+      box-shadow: 0 0 12px rgba(255, 145, 0, 0.4);
+    }
+
+    .piece-tag {
+      display: inline-block;
+      font-family: var(--font-ui);
+      font-size: 0.72em;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 1px 6px;
+      border-radius: 5px;
+      margin-left: 6px;
+      vertical-align: middle;
+      color: #000000;
+    }
+    .tag-clase { background: var(--c-clase); }
+    .tag-atributo { background: var(--c-atributo); }
+    .tag-constructor { background: var(--c-constructor); color: #ffffff; }
+    .tag-metodo { background: var(--c-metodo); }
+    .tag-parametro { background: var(--c-parametro); }
+
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+    .shake-err {
+      animation: shakeError 0.3s ease;
+      border-color: var(--c-error) !important;
+      background: rgba(255, 23, 68, 0.32) !important;
+    }
+
+    /* SELECTOR DE PINCELES (PARTE INFERIOR) */
+    .brushes-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .brushes-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 7px;
+    }
+
+    .brush-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 12px;
+      border-radius: 12px;
+      background: #0d0d15;
+      border: 2px solid #2e2e42;
+      color: #ffffff;
+      font-family: var(--font-ui);
+      font-size: 1.02rem;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .brush-btn.full-width {
+      grid-column: span 2;
+    }
+
+    .brush-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brush-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .brush-count {
+      font-size: 0.92rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.12);
+      font-weight: 900;
+    }
+
+    .brush-btn[data-type="clase"] { border-color: rgba(0, 229, 255, 0.45); }
+    .brush-btn[data-type="clase"] .brush-dot { background: var(--c-clase); box-shadow: 0 0 8px var(--c-clase); }
+    .brush-btn[data-type="clase"].active {
+      background: var(--bg-clase);
+      border-color: var(--c-clase);
+      box-shadow: 0 0 14px rgba(0, 229, 255, 0.5);
+    }
+
+    .brush-btn[data-type="atributo"] { border-color: rgba(255, 214, 0, 0.45); }
+    .brush-btn[data-type="atributo"] .brush-dot { background: var(--c-atributo); box-shadow: 0 0 8px var(--c-atributo); }
+    .brush-btn[data-type="atributo"].active {
+      background: var(--bg-atributo);
+      border-color: var(--c-atributo);
+      box-shadow: 0 0 14px rgba(255, 214, 0, 0.5);
+    }
+
+    .brush-btn[data-type="constructor"] { border-color: rgba(255, 64, 129, 0.45); }
+    .brush-btn[data-type="constructor"] .brush-dot { background: var(--c-constructor); box-shadow: 0 0 8px var(--c-constructor); }
+    .brush-btn[data-type="constructor"].active {
+      background: var(--bg-constructor);
+      border-color: var(--c-constructor);
+      box-shadow: 0 0 14px rgba(255, 64, 129, 0.5);
+    }
+
+    .brush-btn[data-type="metodo"] { border-color: rgba(0, 230, 118, 0.45); }
+    .brush-btn[data-type="metodo"] .brush-dot { background: var(--c-metodo); box-shadow: 0 0 8px var(--c-metodo); }
+    .brush-btn[data-type="metodo"].active {
+      background: var(--bg-metodo);
+      border-color: var(--c-metodo);
+      box-shadow: 0 0 14px rgba(0, 230, 118, 0.5);
+    }
+
+    .brush-btn[data-type="parametro"] { border-color: rgba(255, 145, 0, 0.45); }
+    .brush-btn[data-type="parametro"] .brush-dot { background: var(--c-parametro); box-shadow: 0 0 8px var(--c-parametro); }
+    .brush-btn[data-type="parametro"].active {
+      background: var(--bg-parametro);
+      border-color: var(--c-parametro);
+      box-shadow: 0 0 14px rgba(255, 145, 0, 0.5);
+    }
+
+    .brush-btn.completed {
+      opacity: 0.5;
+    }
+
+    /* BOTONES DE MOSTRAR RESULTADO Y SALTAR */
+    .actions-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      padding: 13px 10px;
+      border-radius: 13px;
+      font-family: var(--font-ui);
+      font-size: 1rem;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 2px solid transparent;
+    }
+    .action-btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn-solve {
+      background: #1a162b;
+      color: #ffd600;
+      border-color: #ffd600;
+    }
+
+    .btn-skip {
+      background: #122230;
+      color: #00e5ff;
+      border-color: #00e5ff;
+    }
+
+    .btn-next-ready {
+      background: #00e676 !important;
+      color: #000000 !important;
+      border-color: #00e676 !important;
+      box-shadow: 0 0 16px rgba(0, 230, 118, 0.55);
+    }
+
+    /* MODALES */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 100;
+    }
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #0d0d14;
+      border: 2px solid #3c3c58;
+      border-radius: 20px;
+      padding: 20px;
+      max-width: 460px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: 90dvh;
+      overflow-y: auto;
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .guide-item {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #151522;
+      border-left: 5px solid #fff;
+      font-size: 0.98rem;
+      line-height: 1.42;
+    }
+    .guide-item strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 1.05rem;
+    }
+
+    .close-modal-btn {
+      padding: 14px;
+      border-radius: 12px;
+      background: #00e5ff;
+      color: #000000;
+      font-size: 1.08rem;
+      font-weight: 900;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <!-- BARRA SUPERIOR -->
+    <header class="top-bar">
+      <div class="progress-info">
+        <span class="case-counter" id="caseCounter">1 / 20</span>
+        <span class="diff-badge diff-Facil" id="diffBadge">Fácil</span>
+      </div>
+      <div class="header-controls">
+        <span class="score-pill" id="scorePill">★ 0</span>
+        <button class="font-btn" id="btnFontDown" title="Reducir letra">A-</button>
+        <button class="font-btn" id="btnFontUp" title="Aumentar letra">A+</button>
+        <button class="font-btn" id="btnHelp" title="Guía rápida">?</button>
+      </div>
+    </header>
+
+    <!-- BANNER DE ESTADO Y PISTA -->
+    <section class="challenge-banner">
+      <div class="challenge-title-row">
+        <h1 class="challenge-title" id="caseTitle">Caso: Clase Vehiculo</h1>
+        <span class="remaining-counter" id="remainingText">Faltan: 6</span>
+      </div>
+      <div class="feedback-toast info" id="feedbackToast">
+        1º Elige una pieza abajo · 2º Toca dónde está en el código
+      </div>
+    </section>
+
+    <!-- VISOR DE CÓDIGO -->
+    <section class="code-viewport" id="codeViewport">
+      <div class="code-lines" id="codeContainer"></div>
+    </section>
+
+    <!-- BOTONES DE CATEGORÍA (PINCELES) -->
+    <section class="brushes-section">
+      <div class="brushes-grid">
+        <button class="brush-btn active" data-type="clase">
+          <span class="brush-left"><span class="brush-dot"></span>Clase</span>
+          <span class="brush-count" id="count-clase">0/1</span>
+        </button>
+        <button class="brush-btn" data-type="atributo">
+          <span class="brush-left"><span class="brush-dot"></span>Atributo</span>
+          <span class="brush-count" id="count-atributo">0/2</span>
+        </button>
+        <button class="brush-btn" data-type="constructor">
+          <span class="brush-left"><span class="brush-dot"></span>Constructor</span>
+          <span class="brush-count" id="count-constructor">0/1</span>
+        </button>
+        <button class="brush-btn" data-type="metodo">
+          <span class="brush-left"><span class="brush-dot"></span>Método</span>
+          <span class="brush-count" id="count-metodo">0/2</span>
+        </button>
+        <button class="brush-btn full-width" data-type="parametro" id="brushParametro" style="display: none;">
+          <span class="brush-left"><span class="brush-dot"></span>Parámetro (extra)</span>
+          <span class="brush-count" id="count-parametro">0/0</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- BOTONES DE MOSTRAR RESULTADO Y SALTAR -->
+    <footer class="actions-row">
+      <button class="action-btn btn-solve" id="btnShowResult">
+        👁️ Mostrar Resultado
+      </button>
+      <button class="action-btn btn-skip" id="btnSkip">
+        ⏭️ Saltar Ejercicio
+      </button>
+    </footer>
+  </main>
+
+  <!-- MODAL DE GUÍA PARA DIFERENCIAR EN JAVA -->
+  <div class="modal-overlay" id="helpModal">
+    <div class="modal-card">
+      <h2 class="modal-title">⚡ Trucos para Diferenciar en Java</h2>
+      <div class="guide-item" style="border-color: var(--c-clase);">
+        <strong style="color: var(--c-clase);">🟦 CLASE</strong>
+        Es el molde general. Siempre lleva la palabra clave <code>class Nombre</code>.
+      </div>
+      <div class="guide-item" style="border-color: var(--c-atributo);">
+        <strong style="color: var(--c-atributo);">🟨 ATRIBUTO</strong>
+        Variables declaradas <b>dentro de la clase pero fuera de cualquier método</b> (ej. <code>private String marca;</code>). No llevan paréntesis.
+      </div>
+      <div class="guide-item" style="border-color: var(--c-constructor);">
+        <strong style="color: var(--c-constructor);">🟪 CONSTRUCTOR</strong>
+        Se llama <b>EXACTAMENTE igual que la Clase</b>, lleva paréntesis <code>(...)</code> y <b>NUNCA tiene tipo de retorno</b> (ni siquiera <code>void</code>).
+      </div>
+      <div class="guide-item" style="border-color: var(--c-metodo);">
+        <strong style="color: var(--c-metodo);">🟩 MÉTODO</strong>
+        Lleva paréntesis <code>(...)</code> y <b>SIEMPRE tiene tipo de retorno</b> antes de su nombre (<code>void</code>, <code>String</code>, <code>int</code>, <code>boolean</code>...).
+      </div>
+      <div class="guide-item" style="border-color: var(--c-parametro);">
+        <strong style="color: var(--c-parametro);">🟧 PARÁMETRO (Extra)</strong>
+        Variables declaradas <b>dentro de los paréntesis</b> de un constructor o método: <code>(String ma, String mo)</code>.
+      </div>
+      <button class="close-modal-btn" id="btnCloseHelp">¡Entendido!</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE FIN DE LOS 20 CASOS -->
+  <div class="modal-overlay" id="endModal">
+    <div class="modal-card" style="text-align: center;">
+      <h2 class="modal-title">🏆 ¡20 Casos Completados!</h2>
+      <p id="finalStatsText" style="font-size: 1.1rem; color: #c2cad8; line-height: 1.5;"></p>
+      <button class="close-modal-btn" id="btnRestartGame">🔄 Jugar de Nuevo (Orden Aleatorio)</button>
+    </div>
+  </div>
+
+  <script>
+    const CASES_DB = [
+      // 1. Caso exacto de tu imagen: Vehiculo
+      {
+        id: 1,
+        title: "Clase Vehiculo",
+        difficulty: "Facil",
+        diffLabel: "Fácil",
+        lines: [
+          [{ p: "public class Vehiculo", type: "clase", hint: "Declaración de la clase Vehiculo (lleva 'class')" }, " {"],
+          ["    ", { p: "private String marca;", type: "atributo", hint: "Atributo marca (variable de la clase)" }],
+          ["    ", { p: "private String modelo;", type: "atributo", hint: "Atributo modelo (variable de la clase)" }],
+          [""],
+          ["    ", { p: "public Vehiculo(String ma, String mo)", type: "constructor", hint: "Constructor: mismo nombre que la clase y SIN tipo de retorno" }, " {"],
+          ["        ", { p: "marca = ma;", type: "distractor", hint: "Es una asignación dentro del constructor, no una declaración." }],
+          ["        ", { p: "modelo = mo;", type: "distractor", hint: "Asignación del parámetro al atributo." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void arrancar()", type: "metodo", hint: "Método: lleva tipo de retorno 'void' y paréntesis ()" }, " {"],
+          ["        ", { p: "System.out.println(\"Arrancando el vehículo. Marca: \" + marca + \". Modelo: \" + modelo);", type: "distractor", hint: "Llamada para imprimir por pantalla dentro del método." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public String getMarca()", type: "metodo", hint: "Método getter: devuelve un 'String'" }, " {"],
+          ["        ", { p: "return marca;", type: "distractor", hint: "Instrucción return que devuelve el valor." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 2. Fácil: Perro
+      {
+        id: 2,
+        title: "Mascota Simple",
+        difficulty: "Facil",
+        diffLabel: "Fácil",
+        lines: [
+          [{ p: "public class Perro", type: "clase", hint: "Declaración de la clase Perro" }, " {"],
+          ["    ", { p: "private String nombre;", type: "atributo", hint: "Atributo que almacena el nombre" }],
+          ["    ", { p: "private int edad;", type: "atributo", hint: "Atributo entero para la edad" }],
+          [""],
+          ["    ", { p: "public Perro(String nom, int ed)", type: "constructor", hint: "Constructor: se llama Perro y no tiene void ni retorno" }, " {"],
+          ["        ", { p: "nombre = nom;", type: "distractor", hint: "Asignación interna del constructor." }],
+          ["        ", { p: "edad = ed;", type: "distractor", hint: "Asignación interna del constructor." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void ladrar()", type: "metodo", hint: "Método: devuelve void y realiza una acción" }, " {"],
+          ["        ", { p: "System.out.println(\"¡Guau!\");", type: "distractor", hint: "Instrucción para imprimir texto." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 3. Fácil: CuentaBancaria
+      {
+        id: 3,
+        title: "Cuenta Bancaria",
+        difficulty: "Facil",
+        diffLabel: "Fácil",
+        lines: [
+          [{ p: "public class CuentaBancaria", type: "clase", hint: "Definición de la clase CuentaBancaria" }, " {"],
+          ["    ", { p: "private double saldo;", type: "atributo", hint: "Atributo decimal que guarda el saldo" }],
+          [""],
+          ["    ", { p: "public CuentaBancaria(double saldoInicial)", type: "constructor", hint: "Constructor de CuentaBancaria" }, " {"],
+          ["        ", { p: "saldo = saldoInicial;", type: "distractor", hint: "Asignación de valor inicial." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void ingresar(double cantidad)", type: "metodo", hint: "Método con retorno void" }, " {"],
+          ["        ", { p: "saldo = saldo + cantidad;", type: "distractor", hint: "Suma dentro del método." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public double getSaldo()", type: "metodo", hint: "Método que devuelve un double" }, " {"],
+          ["        ", { p: "return saldo;", type: "distractor", hint: "Instrucción return." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 4. Fácil: Libro
+      {
+        id: 4,
+        title: "Biblioteca: Libro",
+        difficulty: "Facil",
+        diffLabel: "Fácil",
+        lines: [
+          [{ p: "public class Libro", type: "clase", hint: "Declaración de la clase Libro" }, " {"],
+          ["    ", { p: "private String titulo;", type: "atributo", hint: "Atributo String del libro" }],
+          ["    ", { p: "private int paginas;", type: "atributo", hint: "Atributo int del número de páginas" }],
+          [""],
+          ["    ", { p: "public Libro(String t, int p)", type: "constructor", hint: "Constructor de la clase Libro" }, " {"],
+          ["        ", { p: "titulo = t;", type: "distractor", hint: "Asignación dentro del constructor." }],
+          ["        ", { p: "paginas = p;", type: "distractor", hint: "Asignación dentro del constructor." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public String getTitulo()", type: "metodo", hint: "Método que retorna el título (String)" }, " {"],
+          ["        ", { p: "return titulo;", type: "distractor", hint: "Sentencia return." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 5. Fácil: Bombilla
+      {
+        id: 5,
+        title: "Interruptor de Luz",
+        difficulty: "Facil",
+        diffLabel: "Fácil",
+        lines: [
+          [{ p: "public class Bombilla", type: "clase", hint: "Nombre de la clase con 'class'" }, " {"],
+          ["    ", { p: "private boolean encendida;", type: "atributo", hint: "Atributo booleano (true/false)" }],
+          [""],
+          ["    ", { p: "public Bombilla()", type: "constructor", hint: "Constructor sin parámetros" }, " {"],
+          ["        ", { p: "encendida = false;", type: "distractor", hint: "Inicialización del estado en el constructor." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void encender()", type: "metodo", hint: "Método con retorno void" }, " {"],
+          ["        ", { p: "encendida = true;", type: "distractor", hint: "Cambio de valor de la variable." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public boolean estaEncendida()", type: "metodo", hint: "Método que devuelve boolean" }, " {"],
+          ["        ", { p: "return encendida;", type: "distractor", hint: "Sentencia de retorno." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 6. Medio: Dos Constructores (Sobrecarga)
+      {
+        id: 6,
+        title: "Dos Constructores",
+        difficulty: "Medio",
+        diffLabel: "Medio",
+        lines: [
+          [{ p: "public class Producto", type: "clase", hint: "Declaración de la clase Producto" }, " {"],
+          ["    ", { p: "private String nombre;", type: "atributo", hint: "Atributo nombre" }],
+          ["    ", { p: "private double precio;", type: "atributo", hint: "Atributo precio" }],
+          [""],
+          ["    ", { p: "public Producto()", type: "constructor", hint: "Primer constructor (vacío)" }, " {"],
+          ["        ", { p: "nombre = \"Genérico\";", type: "distractor", hint: "Asignación interna." }],
+          ["        ", { p: "precio = 0.0;", type: "distractor", hint: "Asignación interna." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public Producto(String n, double p)", type: "constructor", hint: "Segundo constructor sobrecargado" }, " {"],
+          ["        ", { p: "nombre = n;", type: "distractor", hint: "Asignación interna." }],
+          ["        ", { p: "precio = p;", type: "distractor", hint: "Asignación interna." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void aplicarDescuento(double desc)", type: "metodo", hint: "Método con retorno void" }, " {"],
+          ["        ", { p: "precio = precio - desc;", type: "distractor", hint: "Cálculo dentro del método." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 7. Medio: Variable local vs Atributo
+      {
+        id: 7,
+        title: "¡Atributo vs Variable Local!",
+        difficulty: "Medio",
+        diffLabel: "Medio",
+        lines: [
+          [{ p: "public class Rectangulo", type: "clase", hint: "Clase Rectangulo" }, " {"],
+          ["    ", { p: "private int base;", type: "atributo", hint: "Atributo declarado a nivel de clase" }],
+          ["    ", { p: "private int altura;", type: "atributo", hint: "Atributo declarado a nivel de clase" }],
+          [""],
+          ["    ", { p: "public Rectangulo(int b, int a)", type: "constructor", hint: "Constructor de Rectangulo" }, " {"],
+          ["        ", { p: "this.base = b;", type: "distractor", hint: "Asignación usando this." }],
+          ["        ", { p: "this.altura = a;", type: "distractor", hint: "Asignación usando this." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public int calcularArea()", type: "metodo", hint: "Método que devuelve un int" }, " {"],
+          ["        ", { p: "int area = base * altura;", type: "distractor", hint: "¡Trampa! 'area' está DENTRO de un método: es una variable local, NO un atributo." }],
+          ["        ", { p: "return area;", type: "distractor", hint: "Retorno del resultado." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 8. Medio: Héroe con Parámetros
+      {
+        id: 8,
+        title: "Héroe + Parámetros",
+        difficulty: "Medio",
+        diffLabel: "Medio",
+        lines: [
+          [{ p: "public class Heroe", type: "clase", hint: "Declaración de la clase Heroe" }, " {"],
+          ["    ", { p: "private String alias;", type: "atributo", hint: "Atributo alias" }],
+          ["    ", { p: "private int vida;", type: "atributo", hint: "Atributo vida" }],
+          [""],
+          ["    ", { p: "public Heroe", type: "constructor", hint: "Cabecera del constructor" }, "(", { p: "String a", type: "parametro", hint: "Parámetro recibido por el constructor" }, ") {"],
+          ["        ", { p: "alias = a;", type: "distractor", hint: "Asignación." }],
+          ["        ", { p: "vida = 100;", type: "distractor", hint: "Inicialización a 100." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void recibirDano", type: "metodo", hint: "Método con retorno void" }, "(", { p: "int puntos", type: "parametro", hint: "Parámetro del método recibirDano" }, ") {"],
+          ["        ", { p: "vida -= puntos;", type: "distractor", hint: "Resta de puntos de vida." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 9. Medio: Atributos con inicialización directa
+      {
+        id: 9,
+        title: "Termómetro Digital",
+        difficulty: "Medio",
+        diffLabel: "Medio",
+        lines: [
+          [{ p: "public class Termometro", type: "clase", hint: "Clase Termometro" }, " {"],
+          ["    ", { p: "private double grados = 20.5;", type: "atributo", hint: "Atributo con valor inicial por defecto" }],
+          ["    ", { p: "String escala = \"Celsius\";", type: "atributo", hint: "Atributo de paquete (declarado fuera de cualquier método)" }],
+          [""],
+          ["    ", { p: "public Termometro(double g)", type: "constructor", hint: "Constructor que recibe los grados" }, " {"],
+          ["        ", { p: "grados = g;", type: "distractor", hint: "Asignación." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void subirTemperatura()", type: "metodo", hint: "Método void" }, " {"],
+          ["        ", { p: "grados++;", type: "distractor", hint: "Incremento." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public double leerGrados()", type: "metodo", hint: "Método que retorna double" }, " {"],
+          ["        ", { p: "return grados;", type: "distractor", hint: "Retorno." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 10. Medio: Reloj con parámetros
+      {
+        id: 10,
+        title: "Reloj de Pulsera",
+        difficulty: "Medio",
+        diffLabel: "Medio",
+        lines: [
+          [{ p: "public class Reloj", type: "clase", hint: "Clase Reloj" }, " {"],
+          ["    ", { p: "private int hora;", type: "atributo", hint: "Atributo hora" }],
+          ["    ", { p: "private int minuto;", type: "atributo", hint: "Atributo minuto" }],
+          [""],
+          ["    ", { p: "public Reloj", type: "constructor", hint: "Constructor de Reloj" }, "(", { p: "int h, int m", type: "parametro", hint: "Parámetros de entrada del constructor" }, ") {"],
+          ["        ", { p: "hora = h; minuto = m;", type: "distractor", hint: "Asignaciones de atributos." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void ponerEnHora", type: "metodo", hint: "Método void" }, "(", { p: "int nuevaHora", type: "parametro", hint: "Parámetro del método" }, ") {"],
+          ["        ", { p: "hora = nuevaHora;", type: "distractor", hint: "Asignación." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public String mostrarHora()", type: "metodo", hint: "Método que devuelve un String" }, " {"],
+          ["        ", { p: "return hora + \":\" + minuto;", type: "distractor", hint: "Retorno del texto." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 11. Difícil: Trampa de método con nombre de clase y void
+      {
+        id: 11,
+        title: "⚠️ ¡Trampa de Examen!",
+        difficulty: "Dificil",
+        diffLabel: "Difícil",
+        lines: [
+          [{ p: "public class Alarma", type: "clase", hint: "Declaración de la clase Alarma" }, " {"],
+          ["    ", { p: "private boolean activa;", type: "atributo", hint: "Atributo booleano" }],
+          [""],
+          ["    ", { p: "public Alarma()", type: "constructor", hint: "VERDADERO Constructor: NO tiene tipo de retorno" }, " {"],
+          ["        ", { p: "activa = true;", type: "distractor", hint: "Asignación." }],
+          ["    }"],
+          [""],
+          ["    // ¡Fíjate muy bien en la siguiente línea!"],
+          ["    ", { p: "public void Alarma()", type: "metodo", hint: "¡Sorpresa! Como lleva 'void', Java lo trata como un MÉTODO normal, NO un constructor" }, " {"],
+          ["        ", { p: "System.out.println(\"Sonando\");", type: "distractor", hint: "Impresión en consola." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void apagar()", type: "metodo", hint: "Método normal apagar" }, " {"],
+          ["        ", { p: "activa = false;", type: "distractor", hint: "Asignación." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 12. Difícil: Constantes y static
+      {
+        id: 12,
+        title: "Constantes y Static",
+        difficulty: "Dificil",
+        diffLabel: "Difícil",
+        lines: [
+          [{ p: "public class ConversorMoneda", type: "clase", hint: "Clase ConversorMoneda" }, " {"],
+          ["    ", { p: "public static final double TASA_EURO = 0.92;", type: "atributo", hint: "Atributo constante estático de la clase" }],
+          ["    ", { p: "private String banco;", type: "atributo", hint: "Atributo de instancia" }],
+          [""],
+          ["    ", { p: "public ConversorMoneda(String b)", type: "constructor", hint: "Constructor de ConversorMoneda" }, " {"],
+          ["        ", { p: "this.banco = b;", type: "distractor", hint: "Asignación." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public static double aEuros(double dolares)", type: "metodo", hint: "Método estático que devuelve double" }, " {"],
+          ["        ", { p: "double res = dolares * TASA_EURO;", type: "distractor", hint: "Variable local dentro del método." }],
+          ["        ", { p: "return res;", type: "distractor", hint: "Sentencia return." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 13. Difícil: Herencia extends
+      {
+        id: 13,
+        title: "Herencia (extends)",
+        difficulty: "Dificil",
+        diffLabel: "Difícil",
+        lines: [
+          [{ p: "public class CocheElectrico", type: "clase", hint: "CocheElectrico es la clase que se declara" }, " extends ", { p: "Vehiculo", type: "distractor", hint: "Aquí Vehiculo es la superclase de la que hereda, pero la clase declarada es CocheElectrico." }, " {"],
+          ["    ", { p: "private int autonomiaKm;", type: "atributo", hint: "Atributo propio de CocheElectrico" }],
+          [""],
+          ["    ", { p: "public CocheElectrico(String ma, int km)", type: "constructor", hint: "Constructor de la subclase CocheElectrico" }, " {"],
+          ["        ", { p: "super(ma);", type: "distractor", hint: "Llamada al constructor padre (instrucción interna)." }],
+          ["        ", { p: "this.autonomiaKm = km;", type: "distractor", hint: "Asignación del atributo." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public int getAutonomiaKm()", type: "metodo", hint: "Método getter que devuelve int" }, " {"],
+          ["        ", { p: "return autonomiaKm;", type: "distractor", hint: "Sentencia return." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 14. Difícil: Constructor privado (Singleton)
+      {
+        id: 14,
+        title: "Constructor Privado",
+        difficulty: "Dificil",
+        diffLabel: "Difícil",
+        lines: [
+          [{ p: "public class Configuracion", type: "clase", hint: "Clase Configuracion" }, " {"],
+          ["    ", { p: "private static Configuracion instancia;", type: "atributo", hint: "Atributo estático del mismo tipo que la clase" }],
+          ["    ", { p: "private String idioma;", type: "atributo", hint: "Atributo String idioma" }],
+          [""],
+          ["    ", { p: "private Configuracion()", type: "constructor", hint: "¡Un constructor también puede ser 'private'! No tiene retorno y se llama igual que la clase" }, " {"],
+          ["        ", { p: "idioma = \"ES\";", type: "distractor", hint: "Asignación interna." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public static Configuracion getInstancia()", type: "metodo", hint: "Devuelve un objeto 'Configuracion' y se llama getInstancia -> ¡Es un Método!" }, " {"],
+          ["        ", { p: "return instancia;", type: "distractor", hint: "Sentencia return." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 15. Difícil: Arrays como atributos
+      {
+        id: 15,
+        title: "Carrito de Compra",
+        difficulty: "Dificil",
+        diffLabel: "Difícil",
+        lines: [
+          [{ p: "public class Carrito", type: "clase", hint: "Declaración de la clase Carrito" }, " {"],
+          ["    ", { p: "private String[] articulos;", type: "atributo", hint: "Atributo de tipo array de Strings" }],
+          ["    ", { p: "private int totalElementos;", type: "atributo", hint: "Atributo contador" }],
+          [""],
+          ["    ", { p: "public Carrito", type: "constructor", hint: "Constructor de Carrito" }, "(", { p: "int capacidadMax", type: "parametro", hint: "Parámetro capacidadMax" }, ") {"],
+          ["        ", { p: "articulos = new String[capacidadMax];", type: "distractor", hint: "Creación del array con new." }],
+          ["        ", { p: "totalElementos = 0;", type: "distractor", hint: "Inicialización." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public boolean estaVacio()", type: "metodo", hint: "Método que devuelve boolean" }, " {"],
+          ["        ", { p: "return totalElementos == 0;", type: "distractor", hint: "Comparación de retorno." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 16. Muy Difícil: Clase y Método Abstracto
+      {
+        id: 16,
+        title: "Clase y Método Abstracto",
+        difficulty: "MuyDificil",
+        diffLabel: "Muy Difícil",
+        lines: [
+          [{ p: "public abstract class Figura", type: "clase", hint: "Clase abstracta Figura" }, " {"],
+          ["    ", { p: "protected String color;", type: "atributo", hint: "Atributo protected de la clase" }],
+          [""],
+          ["    ", { p: "protected Figura(String c)", type: "constructor", hint: "Constructor de la clase abstracta" }, " {"],
+          ["        ", { p: "this.color = c;", type: "distractor", hint: "Asignación." }],
+          ["    }"],
+          [""],
+          ["    // ¡No tiene llaves {}, pero tiene retorno y paréntesis!"],
+          ["    ", { p: "public abstract double calcularArea();", type: "metodo", hint: "¡Método abstracto! Aunque termine en ';' sin llaves, lleva paréntesis y devuelve double" }],
+          [""],
+          ["    ", { p: "public String getColor()", type: "metodo", hint: "Método normal concreto" }, " {"],
+          ["        ", { p: "return color;", type: "distractor", hint: "Retorno." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 17. Muy Difícil: Clase Genérica <T>
+      {
+        id: 17,
+        title: "Caja Genérica <T>",
+        difficulty: "MuyDificil",
+        diffLabel: "Muy Difícil",
+        lines: [
+          [{ p: "public class Caja<T>", type: "clase", hint: "Declaración de clase genérica Caja<T>" }, " {"],
+          ["    ", { p: "private T contenido;", type: "atributo", hint: "Atributo de tipo genérico T" }],
+          ["    ", { p: "private boolean sellada;", type: "atributo", hint: "Atributo booleano" }],
+          [""],
+          ["    ", { p: "public Caja", type: "constructor", hint: "Constructor de Caja" }, "(", { p: "T objetoInicial", type: "parametro", hint: "Parámetro de tipo T" }, ") {"],
+          ["        ", { p: "this.contenido = objetoInicial;", type: "distractor", hint: "Asignación." }],
+          ["        ", { p: "this.sellada = true;", type: "distractor", hint: "Asignación." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public T abrirCaja()", type: "metodo", hint: "Método que devuelve un objeto de tipo T" }, " {"],
+          ["        ", { p: "sellada = false;", type: "distractor", hint: "Cambio de estado." }],
+          ["        ", { p: "return contenido;", type: "distractor", hint: "Retorno." }],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 18. Muy Difícil: Atributos declarados al final + método trampa
+      {
+        id: 18,
+        title: "Código Desordenado",
+        difficulty: "MuyDificil",
+        diffLabel: "Muy Difícil",
+        lines: [
+          [{ p: "public class Servidor", type: "clase", hint: "Clase Servidor" }, " {"],
+          ["    ", { p: "public Servidor(int p)", type: "constructor", hint: "Constructor sin tipo de retorno" }, " {"],
+          ["        ", { p: "this.puerto = p;", type: "distractor", hint: "Asignación." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public int Servidor()", type: "metodo", hint: "¡Trampa! Devuelve 'int', así que es un MÉTODO aunque se llame Servidor" }, " {"],
+          ["        ", { p: "return puerto;", type: "distractor", hint: "Retorno." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void reiniciar()", type: "metodo", hint: "Método void reiniciar" }, " {"],
+          ["        ", { p: "activo = true;", type: "distractor", hint: "Asignación." }],
+          ["    }"],
+          [""],
+          ["    // En Java los atributos también pueden ir al final:"],
+          ["    ", { p: "private int puerto = 8080;", type: "atributo", hint: "Atributo declarado al final de la clase" }],
+          ["    ", { p: "private boolean activo;", type: "atributo", hint: "Atributo booleano declarado al final" }],
+          ["}"]
+        ]
+      },
+      // 19. Muy Difícil: Clase Interna (dos clases en el mismo archivo)
+      {
+        id: 19,
+        title: "Clase Interna (Anidada)",
+        difficulty: "MuyDificil",
+        diffLabel: "Muy Difícil",
+        lines: [
+          [{ p: "public class Ordenador", type: "clase", hint: "Clase externa principal Ordenador" }, " {"],
+          ["    ", { p: "private String marca;", type: "atributo", hint: "Atributo de Ordenador" }],
+          [""],
+          ["    ", { p: "public Ordenador(String m)", type: "constructor", hint: "Constructor de Ordenador" }, " {"],
+          ["        ", { p: "this.marca = m;", type: "distractor", hint: "Asignación." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "class Procesador", type: "clase", hint: "¡Segunda clase! Es una clase interna dentro de Ordenador" }, " {"],
+          ["        ", { p: "private int nucleos;", type: "atributo", hint: "Atributo de la clase interna Procesador" }],
+          [""],
+          ["        ", { p: "public Procesador(int n)", type: "constructor", hint: "Constructor de la clase interna Procesador" }, " {"],
+          ["            ", { p: "nucleos = n;", type: "distractor", hint: "Asignación." }],
+          ["        }"],
+          [""],
+          ["        ", { p: "public int getNucleos()", type: "metodo", hint: "Método de Procesador" }, " {"],
+          ["            ", { p: "return nucleos;", type: "distractor", hint: "Retorno." }],
+          ["        }"],
+          ["    }"],
+          ["}"]
+        ]
+      },
+      // 20. Muy Difícil: Jefe Final
+      {
+        id: 20,
+        title: "👑 Jefe Final: Nave Espacial",
+        difficulty: "MuyDificil",
+        diffLabel: "Muy Difícil",
+        lines: [
+          [{ p: "public final class NaveEspacial", type: "clase", hint: "Clase final NaveEspacial" }, " {"],
+          ["    ", { p: "private final String codigo;", type: "atributo", hint: "Atributo constante de cada nave" }],
+          ["    ", { p: "private double combustible;", type: "atributo", hint: "Atributo combustible" }],
+          [""],
+          ["    ", { p: "public NaveEspacial()", type: "constructor", hint: "Constructor sin argumentos" }, " {"],
+          ["        ", { p: "this(\"ORION-1\", 100.0);", type: "distractor", hint: "Llamada a otro constructor usando this(...)." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public NaveEspacial", type: "constructor", hint: "Constructor sobrecargado" }, "(", { p: "String cod, double comb", type: "parametro", hint: "Parámetros del constructor" }, ") {"],
+          ["        ", { p: "this.codigo = cod;", type: "distractor", hint: "Asignación de atributo." }],
+          ["        ", { p: "this.combustible = comb;", type: "distractor", hint: "Asignación de atributo." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public boolean NaveEspacial()", type: "metodo", hint: "¡Trampa maestra! Tiene tipo de retorno 'boolean', por tanto es un MÉTODO" }, " {"],
+          ["        ", { p: "return combustible > 0;", type: "distractor", hint: "Retorno booleano." }],
+          ["    }"],
+          [""],
+          ["    ", { p: "public void propulsar", type: "metodo", hint: "Método void propulsar" }, "(", { p: "double gasto", type: "parametro", hint: "Parámetro del método propulsar" }, ") {"],
+          ["        ", { p: "combustible -= gasto;", type: "distractor", hint: "Resta de combustible." }],
+          ["    }"],
+          ["}"]
+        ]
+      }
+    ];
+
+    const CATEGORY_LABELS = {
+      clase: "CLASE",
+      atributo: "ATRIBUTO",
+      constructor: "CONSTRUCTOR",
+      metodo: "MÉTODO",
+      parametro: "PARÁMETRO"
+    };
+
+    let deck = [];
+    let currentIndex = 0;
+    let selectedBrush = "clase";
+    let score = 0;
+    let totalPiecesInCase = 0;
+    let foundPiecesInCase = 0;
+    let countsByType = {};
+    let foundByType = {};
+    let fontScale = 1.15;
+
+    const caseCounterEl = document.getElementById("caseCounter");
+    const diffBadgeEl = document.getElementById("diffBadge");
+    const scorePillEl = document.getElementById("scorePill");
+    const caseTitleEl = document.getElementById("caseTitle");
+    const remainingTextEl = document.getElementById("remainingText");
+    const feedbackToastEl = document.getElementById("feedbackToast");
+    const codeContainerEl = document.getElementById("codeContainer");
+    const brushParametroEl = document.getElementById("brushParametro");
+    const btnShowResult = document.getElementById("btnShowResult");
+    const btnSkip = document.getElementById("btnSkip");
+    const helpModal = document.getElementById("helpModal");
+    const endModal = document.getElementById("endModal");
+    const finalStatsText = document.getElementById("finalStatsText");
+
+    function shuffleDeck() {
+      deck = [...CASES_DB];
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      currentIndex = 0;
+      score = 0;
+      scorePillEl.textContent = `★ ${score}`;
+    }
+
+    function setFeedback(msg, status = "info") {
+      feedbackToastEl.textContent = msg;
+      feedbackToastEl.className = `feedback-toast ${status}`;
+    }
+
+    function selectBrush(type) {
+      selectedBrush = type;
+      document.querySelectorAll(".brush-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.type === type);
+      });
+    }
+
+    function autoSelectNextAvailableBrush() {
+      if (foundByType[selectedBrush] < countsByType[selectedBrush]) return;
+      const order = ["clase", "atributo", "constructor", "metodo", "parametro"];
+      for (const t of order) {
+        if (countsByType[t] > 0 && foundByType[t] < countsByType[t]) {
+          selectBrush(t);
+          return;
+        }
+      }
+    }
+
+    function updateBrushCountersUI() {
+      const types = ["clase", "atributo", "constructor", "metodo", "parametro"];
+      types.forEach((t) => {
+        const countSpan = document.getElementById(`count-${t}`);
+        const btn = document.querySelector(`.brush-btn[data-type="${t}"]`);
+        if (countSpan && btn) {
+          const found = foundByType[t] || 0;
+          const total = countsByType[t] || 0;
+          countSpan.textContent = `${found}/${total}`;
+          btn.classList.toggle("completed", total > 0 && found >= total);
+        }
+      });
+
+      const remaining = totalPiecesInCase - foundPiecesInCase;
+      remainingTextEl.textContent = remaining === 0 ? "¡Completado! ✅" : `Faltan: ${remaining}`;
+
+      if (remaining === 0) {
+        btnSkip.textContent = "➡️ Siguiente Caso";
+        btnSkip.classList.add("btn-next-ready");
+      } else {
+        btnSkip.textContent = "⏭️ Saltar Ejercicio";
+        btnSkip.classList.remove("btn-next-ready");
+      }
+    }
+
+    function loadCurrentCase() {
+      const currentCase = deck[currentIndex];
+      caseCounterEl.textContent = `${currentIndex + 1} / ${deck.length}`;
+      caseTitleEl.textContent = currentCase.title;
+
+      diffBadgeEl.textContent = currentCase.diffLabel;
+      diffBadgeEl.className = `diff-badge diff-${currentCase.difficulty}`;
+
+      countsByType = { clase: 0, atributo: 0, constructor: 0, metodo: 0, parametro: 0 };
+      foundByType = { clase: 0, atributo: 0, constructor: 0, metodo: 0, parametro: 0 };
+      totalPiecesInCase = 0;
+      foundPiecesInCase = 0;
+
+      currentCase.lines.forEach((line) => {
+        line.forEach((seg) => {
+          if (typeof seg === "object" && seg.type !== "distractor") {
+            countsByType[seg.type] = (countsByType[seg.type] || 0) + 1;
+            totalPiecesInCase++;
+          }
+        });
+      });
+
+      brushParametroEl.style.display = countsByType.parametro > 0 ? "flex" : "none";
+
+      selectBrush("clase");
+      autoSelectNextAvailableBrush();
+      updateBrushCountersUI();
+      setFeedback("1º Elige categoría abajo · 2º Toca esa pieza en el código", "info");
+
+      codeContainerEl.innerHTML = "";
+      currentCase.lines.forEach((lineSegments, idx) => {
+        const lineDiv = document.createElement("div");
+        lineDiv.className = "code-line";
+
+        const numSpan = document.createElement("span");
+        numSpan.className = "line-num";
+        numSpan.textContent = String(idx + 1).padStart(2, " ");
+        lineDiv.appendChild(numSpan);
+
+        const contentSpan = document.createElement("span");
+        contentSpan.className = "line-content";
+
+        lineSegments.forEach((seg) => {
+          if (typeof seg === "string") {
+            contentSpan.appendChild(document.createTextNode(seg));
+          } else {
+            const tokenSpan = document.createElement("span");
+            tokenSpan.className = "token-piece";
+            tokenSpan.textContent = seg.p;
+            tokenSpan.dataset.realType = seg.type;
+            tokenSpan.dataset.hint = seg.hint || "";
+            tokenSpan.dataset.found = "false";
+
+            tokenSpan.addEventListener("click", () => handleTokenTap(tokenSpan));
+            contentSpan.appendChild(tokenSpan);
+          }
+        });
+
+        lineDiv.appendChild(contentSpan);
+        codeContainerEl.appendChild(lineDiv);
+      });
+
+      document.getElementById("codeViewport").scrollTop = 0;
+    }
+
+    function markTokenAsFound(tokenSpan, realType, awardPoints = true) {
+      if (tokenSpan.dataset.found === "true") return;
+      tokenSpan.dataset.found = "true";
+      tokenSpan.classList.add(`found-${realType}`);
+
+      const badge = document.createElement("span");
+      badge.className = `piece-tag tag-${realType}`;
+      badge.textContent = CATEGORY_LABELS[realType];
+      tokenSpan.appendChild(badge);
+
+      foundByType[realType]++;
+      foundPiecesInCase++;
+
+      if (awardPoints) {
+        score += 10;
+        scorePillEl.textContent = `★ ${score}`;
+      }
+      updateBrushCountersUI();
+    }
+
+    function handleTokenTap(tokenSpan) {
+      const realType = tokenSpan.dataset.realType;
+      const hint = tokenSpan.dataset.hint;
+
+      if (tokenSpan.dataset.found === "true") {
+        setFeedback(`💡 ${CATEGORY_LABELS[realType]}: ${hint}`, "info");
+        return;
+      }
+
+      if (realType === selectedBrush) {
+        markTokenAsFound(tokenSpan, realType, true);
+        if (foundPiecesInCase === totalPiecesInCase) {
+          setFeedback(`🎉 ¡Caso completado! ${hint}`, "ok");
+        } else {
+          setFeedback(`✅ ¡Bien! ${hint}`, "ok");
+          autoSelectNextAvailableBrush();
+        }
+      } else {
+        tokenSpan.classList.remove("shake-err");
+        void tokenSpan.offsetWidth;
+        tokenSpan.classList.add("shake-err");
+
+        if (realType === "distractor") {
+          setFeedback(`❌ No es ${CATEGORY_LABELS[selectedBrush]}: ${hint}`, "err");
+        } else {
+          setFeedback(`❌ No es ${CATEGORY_LABELS[selectedBrush]}. Pista: ${hint}`, "err");
+        }
+      }
+    }
+
+    btnShowResult.addEventListener("click", () => {
+      const tokens = codeContainerEl.querySelectorAll(".token-piece");
+      let revealed = 0;
+      tokens.forEach((t) => {
+        const realType = t.dataset.realType;
+        if (realType !== "distractor" && t.dataset.found !== "true") {
+          markTokenAsFound(t, realType, false);
+          revealed++;
+        }
+      });
+
+      if (revealed > 0) {
+        setFeedback("👁️ Solución revelada. Toca cualquier pieza coloreada para ver su explicación.", "info");
+      } else {
+        setFeedback("¡Ya están todas las piezas marcadas!", "ok");
+      }
+    });
+
+    btnSkip.addEventListener("click", () => {
+      if (currentIndex < deck.length - 1) {
+        currentIndex++;
+        loadCurrentCase();
+      } else {
+        finalStatsText.textContent = `Has completado el mazo aleatorio de 20 ejercicios de Java con ${score} puntos.`;
+        endModal.classList.add("visible");
+      }
+    });
+
+    document.querySelectorAll(".brush-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectBrush(btn.dataset.type);
+        setFeedback(`Marcador activo: ${CATEGORY_LABELS[btn.dataset.type]}. Toca esa pieza en el código.`, "info");
+      });
+    });
+
+    document.getElementById("btnFontUp").addEventListener("click", () => {
+      fontScale = Math.min(1.65, +(fontScale + 0.1).toFixed(2));
+      document.documentElement.style.setProperty("--code-size", `${fontScale}rem`);
+    });
+
+    document.getElementById("btnFontDown").addEventListener("click", () => {
+      fontScale = Math.max(0.85, +(fontScale - 0.1).toFixed(2));
+      document.documentElement.style.setProperty("--code-size", `${fontScale}rem`);
+    });
+
+    document.getElementById("btnHelp").addEventListener("click", () => helpModal.classList.add("visible"));
+    document.getElementById("btnCloseHelp").addEventListener("click", () => helpModal.classList.remove("visible"));
+    document.getElementById("btnRestartGame").addEventListener("click", () => {
+      endModal.classList.remove("visible");
+      shuffleDeck();
+      loadCurrentCase();
+    });
+
+    shuffleDeck();
+    loadCurrentCase();
+  </script>
+</body>
+</html>
